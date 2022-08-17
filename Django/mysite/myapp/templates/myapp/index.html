@@ -1,0 +1,8 @@
+<html>
+  <head></head>
+  <body>
+    {%for book in book_list%} 
+        {{book.id}} -- <a href="{% url 'detail' book.id %}">{{book.name}}</a><br />
+    {%endfor%}
+  </body>
+</html>
