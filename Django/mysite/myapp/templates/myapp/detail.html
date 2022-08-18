@@ -1,5 +1,7 @@
-<h1>
+{% extends 'myapp/base.html' %}
+   
+{% block body %}
     {{book.name}}
     {{book.desc}}
     {{book.price}}
-</h1>
+{% endblock %}
