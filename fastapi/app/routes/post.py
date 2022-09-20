@@ -1,44 +1,21 @@
+import os, sys
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir)
+
+from fastapi import Response, status, HTTPException, Depends, APIRouter
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, status, Depends, Response
-import psycopg2
-from psycopg2.extras import RealDictCursor
 from sqlalchemy.orm import Session
-import models
-import schemas
-from database import engine, get_db
-import utils
-
-models.Base.metadata.create_all(bind=engine)
+from sqlalchemy import func
+from database import get_db
+import schemas, models
 
 
-app = FastAPI()
 
-# Connecting to the database
-# Try to reconnect to the database every 2sec until the success
-# while True:
-#     try:
-#         conn = psycopg2.connect(host='localhost', database='fastapi',
-#                                 user='postgres', password='Arjun@2001', cursor_factory=RealDictCursor)
-#         cursor = conn.cursor()
-#         print('Database connection was successfull')
-#         break
-#     except Exception as error:
-#         print('Connecting to database failed')
-#         print(f'Error: {error}')
-#         time.sleep(2)
+router = APIRouter()
 
 
-# async keyword is needed if you're calling any asynchronus API
-# The decorator allows to modify the behaviour of a function or class.
-
-@app.get("/")
-def root():
-    return {"message": "Server is up and running"}
-
-# Get all the posts
-
-
-@app.get("/posts",  response_model=List[schemas.Post])
+@router.get("/posts",  response_model=List[schemas.Post])
 def get_posts(db: Session = Depends(get_db)):
     data = db.query(models.Post).all()
     return data
@@ -50,7 +27,7 @@ def get_posts(db: Session = Depends(get_db)):
     #         INSERT INTO posts (title, content, published) VALUES ({post.title, post.content, post.published})
     #     """)
 
-@app.post('/posts', response_model=schemas.Post)
+@router.post('/posts', response_model=schemas.Post)
 def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     # cursor.execute("""
     #     INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *
@@ -69,7 +46,7 @@ def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
 # The argument of execute should be passed as a tuple
 
 
-@app.get("/posts/{id}", response_model=schemas.Post)
+@router.get("/posts/{id}", response_model=schemas.Post)
 def get_post(id: int, db: Session = Depends(get_db)):
     # cursor.execute("SELECT * FROM posts where id=%s", (str(id),))
     # post = cursor.fetchone()
@@ -84,7 +61,7 @@ def get_post(id: int, db: Session = Depends(get_db)):
 # Delete post with a specific id
 
 
-@app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int, db: Session = Depends(get_db)):
     # cursor.execute("""
     #     DELETE FROM posts WHERE id=%s returning *
@@ -102,7 +79,7 @@ def delete_post(id: int, db: Session = Depends(get_db)):
 
 
 # Update post with specific id
-@app.put('/posts/{id}', response_model=schemas.Post)
+@router.put('/posts/{id}', response_model=schemas.Post)
 def update_post(id: int, updated_post: schemas.PostCreate, db: Session = Depends(get_db)):
     # cursor.execute("""
     #     UPDATE posts SET title = %s, content=%s,published = %s WHERE id=%s RETURNING *
@@ -117,27 +94,3 @@ def update_post(id: int, updated_post: schemas.PostCreate, db: Session = Depends
     post_query.update(updated_post.dict(), synchronize_session=False)
     db.commit()
     return post_query.first()
-
-
-@app.post('/user', status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-
-    # Hash the password of user
-    hashed_password = utils.hash(user.password)
-    user.password = hashed_password
-
-    new_user = models.User(**user.dict())
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
-
-
-@app.get('/users/{id}', response_model=schemas.UserResponse)
-def get_user(id: int, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == id).first()
-
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    return user
