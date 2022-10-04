@@ -1,21 +1,24 @@
-import os, sys
+import models
+import schemas
+from database import get_db
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from typing import List
+from fastapi import Response, status, HTTPException, Depends, APIRouter
+import os
+import sys
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
 
-from fastapi import Response, status, HTTPException, Depends, APIRouter
-from typing import List, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from database import get_db
-import schemas, models
+
+router = APIRouter(
+    prefix="/posts",
+    tags=['Posts']
+)
 
 
-
-router = APIRouter()
-
-
-@router.get("/posts",  response_model=List[schemas.Post])
+@router.get("",  response_model=List[schemas.Post])
 def get_posts(db: Session = Depends(get_db)):
     data = db.query(models.Post).all()
     return data
@@ -27,7 +30,7 @@ def get_posts(db: Session = Depends(get_db)):
     #         INSERT INTO posts (title, content, published) VALUES ({post.title, post.content, post.published})
     #     """)
 
-@router.post('/posts', response_model=schemas.Post)
+@router.post("", response_model=schemas.Post)
 def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     # cursor.execute("""
     #     INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *
@@ -46,7 +49,7 @@ def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
 # The argument of execute should be passed as a tuple
 
 
-@router.get("/posts/{id}", response_model=schemas.Post)
+@router.get("/{id}", response_model=schemas.Post)
 def get_post(id: int, db: Session = Depends(get_db)):
     # cursor.execute("SELECT * FROM posts where id=%s", (str(id),))
     # post = cursor.fetchone()
@@ -61,7 +64,7 @@ def get_post(id: int, db: Session = Depends(get_db)):
 # Delete post with a specific id
 
 
-@router.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int, db: Session = Depends(get_db)):
     # cursor.execute("""
     #     DELETE FROM posts WHERE id=%s returning *
@@ -79,7 +82,7 @@ def delete_post(id: int, db: Session = Depends(get_db)):
 
 
 # Update post with specific id
-@router.put('/posts/{id}', response_model=schemas.Post)
+@router.put('/{id}', response_model=schemas.Post)
 def update_post(id: int, updated_post: schemas.PostCreate, db: Session = Depends(get_db)):
     # cursor.execute("""
     #     UPDATE posts SET title = %s, content=%s,published = %s WHERE id=%s RETURNING *
